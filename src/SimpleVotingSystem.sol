@@ -17,11 +17,15 @@ contract SimpleVotingSystem is AccessControl {
     mapping(address => bool) public voters;
     uint[] private candidateIds;
 
+    enum WorkflowStatus { REGISTER_CANDIDATES, FOUND_CANDIDATES, VOTE, COMPLETED }
+    WorkflowStatus public workflowStatus;
+
     constructor() {
         _grantRole(ADMIN_ROLE, msg.sender);
     }
 
     function addCandidate(string memory _name) public onlyRole(ADMIN_ROLE) {
+        require(workflowStatus == WorkflowStatus.REGISTER_CANDIDATES, "Wrong phase");
         require(bytes(_name).length > 0, "Candidate name cannot be empty");
         uint candidateId = candidateIds.length + 1;
         candidates[candidateId] = Candidate(candidateId, _name, 0);
@@ -29,6 +33,7 @@ contract SimpleVotingSystem is AccessControl {
     }
 
     function vote(uint _candidateId) public {
+        require(workflowStatus == WorkflowStatus.VOTE, "Wrong phase");
         require(!voters[msg.sender], "You have already voted");
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
 
@@ -50,4 +55,9 @@ contract SimpleVotingSystem is AccessControl {
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
         return candidates[_candidateId];
     }
+
+    function setWorkflowStatus(WorkflowStatus newStatus) external onlyRole(ADMIN_ROLE) {
+        workflowStatus = newStatus;
+    }
+
 }
