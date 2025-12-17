@@ -22,6 +22,8 @@ contract SimpleVotingSystem is AccessControl {
 
     mapping(uint => uint256) public candidateFunds;
 
+    uint256 public voteStartSetAt;
+
     constructor() {
         _grantRole(ADMIN_ROLE, msg.sender);
     }
@@ -38,6 +40,7 @@ contract SimpleVotingSystem is AccessControl {
         require(workflowStatus == WorkflowStatus.VOTE, "Wrong phase");
         require(!voters[msg.sender], "You have already voted");
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
+        require(block.timestamp >= voteStartSetAt + 1 hours, "Voting not open yet");
 
         voters[msg.sender] = true;
         candidates[_candidateId].voteCount += 1;
@@ -60,6 +63,9 @@ contract SimpleVotingSystem is AccessControl {
 
     function setWorkflowStatus(WorkflowStatus newStatus) external onlyRole(ADMIN_ROLE) {
         workflowStatus = newStatus;
+        if (newStatus == WorkflowStatus.VOTE) {
+            voteStartSetAt = block.timestamp;
+        }
     }
 
     function grantFounder(address a) external onlyRole(ADMIN_ROLE) {
