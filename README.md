@@ -1,66 +1,319 @@
-## Foundry
+# 🗳️ SimpleVotingSystem - Blockchain Voting System
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Système de vote décentralisé avec gestion de workflow, financement de candidats et NFT de vote développé avec Solidity et Foundry.
 
-Foundry consists of:
+## 📋 Description du Projet
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Ce projet implémente un système de vote complet sur la blockchain Ethereum avec les fonctionnalités suivantes :
 
-## Documentation
+### 🎯 Fonctionnalités Principales
 
-https://book.getfoundry.sh/
+1. **Gestion des Rôles** (OpenZeppelin AccessControl)
+   - `ADMIN_ROLE` : Gestion du système et du workflow
+   - `FOUNDER_ROLE` : Financement des candidats
+   - `MINTER_ROLE` : Mint des NFT de vote
 
-## Usage
+2. **Workflow en 4 Phases**
+   - `REGISTER_CANDIDATES` : Enregistrement des candidats par les admins
+   - `FOUND_CANDIDATES` : Financement des candidats par les founders
+   - `VOTE` : Période de vote (ouverte 1h après activation)
+   - `COMPLETED` : Fin du vote et désignation du vainqueur
+
+3. **NFT Anti-Double Vote**
+   - Chaque votant reçoit un NFT après avoir voté
+   - Impossible de voter si on possède déjà un NFT
+   - Standard ERC721
+
+4. **Financement des Candidats**
+   - Les founders peuvent envoyer des ETH aux candidats
+   - Uniquement pendant la phase FOUND_CANDIDATES
+
+5. **Désignation du Vainqueur**
+   - Fonction pour obtenir le candidat avec le plus de votes
+   - Accessible uniquement en phase COMPLETED
+
+## 🏗️ Architecture
+
+```
+src/
+├── SimpleVotingSystem.sol   # Contrat principal de vote
+└── SimpleVotingNFT.sol       # Contrat NFT ERC721
+
+test/
+├── SimpleVotingSystem.t.sol  # Tests du système (28 tests)
+└── SimpleVotingNFT.t.sol      # Tests du NFT (11 tests)
+
+script/
+└── DeployVotingSystem.s.sol  # Script de déploiement
+```
+
+## 🧪 Tests Unitaires
+
+Le projet contient **39 tests unitaires** couvrant tous les aspects du système :
+
+### Tests SimpleVotingNFT (11 tests)
+- Déploiement et initialisation
+- Gestion des rôles (MINTER, ADMIN)
+- Fonctions de mint
+- Vérifications de balance
+- Support des interfaces ERC721 et AccessControl
+
+### Tests SimpleVotingSystem (28 tests)
+- Déploiement et configuration
+- Gestion des rôles (ADMIN, FOUNDER)
+- Workflow et transitions de phase
+- Enregistrement et validation des candidats
+- Système de vote avec délai de 1 heure
+- Financement des candidats
+- Désignation du vainqueur
+- Test d'intégration complet
+
+### Exécuter les Tests
+
+```bash
+# Tous les tests
+forge test
+
+# Tests avec verbosité
+forge test -vv
+
+# Tests avec traces
+forge test -vvv
+
+# Test spécifique
+forge test --match-test test_Vote
+
+# Rapport de couverture
+forge coverage
+
+# Rapport de gaz
+forge test --gas-report
+```
+
+## 📦 Installation
+
+### Prérequis
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+- Git
+
+### Installation des Dépendances
+
+```bash
+# Cloner le projet
+git clone <votre-repo>
+cd BlockChainEvaluation
+
+# Installer les dépendances
+forge install
+
+# Compiler les contrats
+forge build
+```
+
+## 🚀 Déploiement sur Sepolia
+
+### 🔧 Prérequis
+
+1. **Obtenir des ETH Sepolia** (testnet)
+   - Faucet Alchemy: https://www.alchemy.com/faucets/ethereum-sepolia
+   - Faucet Infura: https://www.infura.io/faucet/sepolia
+   - Faucet QuickNode: https://faucet.quicknode.com/ethereum/sepolia
+
+2. **Obtenir une clé API RPC**
+   - Alchemy: https://www.alchemy.com/
+   - Infura: https://www.infura.io/
+   - Ou utiliser une RPC publique (moins fiable)
+
+3. **Obtenir une clé API Etherscan** (optionnel, pour vérifier le contrat)
+   - https://etherscan.io/apis
+
+### ⚙️ Configuration
+
+1. **Copier le fichier d'exemple**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Éditer le fichier .env**
+   - Ajouter votre clé privée (sans le préfixe 0x)
+   - Ajouter l'URL RPC Sepolia
+   - Ajouter la clé API Etherscan (optionnel)
+
+   ⚠️ **ATTENTION**: Ne commitez JAMAIS le fichier .env !
+
+### 📤 Déploiement
+
+#### 1. Tester le déploiement en local (simulation)
+```bash
+forge script script/DeployVotingSystem.s.sol:DeployVotingSystem --rpc-url sepolia
+```
+
+#### 2. Déployer sur Sepolia avec vérification
+```bash
+forge script script/DeployVotingSystem.s.sol:DeployVotingSystem \
+  --rpc-url sepolia \
+  --broadcast \
+  --verify \
+  -vvvv
+```
+
+Options:
+- `--broadcast`: Envoie réellement la transaction
+- `--verify`: Vérifie le contrat sur Etherscan
+- `-vvvv`: Mode verbeux pour voir tous les détails
+
+#### 3. Déployer sans vérification
+```bash
+forge script script/DeployVotingSystem.s.sol:DeployVotingSystem \
+  --rpc-url sepolia \
+  --broadcast \
+  -vvvv
+```
+
+### 📝 Après le Déploiement
+
+Les adresses des contrats déployés seront affichées dans le terminal et sauvegardées dans :
+```
+broadcast/DeployVotingSystem.s.sol/11155111/run-latest.json
+```
+
+Vous pouvez vérifier vos contrats manuellement sur Etherscan si nécessaire :
+```bash
+forge verify-contract <ADRESSE_CONTRAT> <NOM_CONTRAT> \
+  --chain sepolia \
+  --etherscan-api-key ${ETHERSCAN_API_KEY}
+```
+
+Exemple:
+```bash
+forge verify-contract 0x123... SimpleVotingNFT --chain sepolia
+forge verify-contract 0x456... SimpleVotingSystem --chain sepolia --constructor-args $(cast abi-encode "constructor(address)" 0x123...)
+```
+
+### 🔍 Vérifier le Déploiement
+
+1. Visitez Sepolia Etherscan: https://sepolia.etherscan.io/
+2. Recherchez vos adresses de contrats
+3. Vérifiez les transactions de déploiement
+
+## 💡 Utilisation
+
+### Commandes Cast Utiles
+
+```bash
+# Vérifier votre solde
+cast balance <VOTRE_ADRESSE> --rpc-url sepolia
+
+# Obtenir l'adresse depuis la clé privée
+cast wallet address <PRIVATE_KEY>
+
+# Voir les détails d'une transaction
+cast tx <TX_HASH> --rpc-url sepolia
+
+# Appeler une fonction en lecture
+cast call <CONTRACT_ADDRESS> "workflowStatus()(uint8)" --rpc-url sepolia
+
+# Envoyer une transaction
+cast send <CONTRACT_ADDRESS> "addCandidate(string)" "Alice" \
+  --rpc-url sepolia \
+  --private-key ${PRIVATE_KEY}
+```
+
+### ⚡ Workflow Complet d'Utilisation
+
+Après le déploiement, voici les étapes pour utiliser le système :
+
+```bash
+# 1. Ajouter des candidats (phase REGISTER_CANDIDATES par défaut)
+cast send <VOTING_SYSTEM_ADDRESS> "addCandidate(string)" "Alice" --rpc-url sepolia --private-key ${PRIVATE_KEY}
+cast send <VOTING_SYSTEM_ADDRESS> "addCandidate(string)" "Bob" --rpc-url sepolia --private-key ${PRIVATE_KEY}
+
+# 2. Passer à la phase FOUND_CANDIDATES (1)
+cast send <VOTING_SYSTEM_ADDRESS> "setWorkflowStatus(uint8)" 1 --rpc-url sepolia --private-key ${PRIVATE_KEY}
+
+# 3. Accorder le rôle FOUNDER
+cast send <VOTING_SYSTEM_ADDRESS> "grantFounder(address)" <FOUNDER_ADDRESS> --rpc-url sepolia --private-key ${PRIVATE_KEY}
+
+# 4. Financer un candidat
+cast send <VOTING_SYSTEM_ADDRESS> "fundCandidate(uint256)" 1 --value 0.1ether --rpc-url sepolia --private-key ${FOUNDER_PRIVATE_KEY}
+
+# 5. Passer à la phase VOTE (2)
+cast send <VOTING_SYSTEM_ADDRESS> "setWorkflowStatus(uint8)" 2 --rpc-url sepolia --private-key ${PRIVATE_KEY}
+
+# 6. Attendre 1 heure, puis voter
+cast send <VOTING_SYSTEM_ADDRESS> "vote(uint256)" 1 --rpc-url sepolia --private-key ${VOTER_PRIVATE_KEY}
+
+# 7. Passer à la phase COMPLETED (3)
+cast send <VOTING_SYSTEM_ADDRESS> "setWorkflowStatus(uint8)" 3 --rpc-url sepolia --private-key ${PRIVATE_KEY}
+
+# 8. Obtenir le vainqueur
+cast call <VOTING_SYSTEM_ADDRESS> "getWinner()(uint256,string,uint256)" --rpc-url sepolia
+```
+
+## 📊 Résultats des Tests
+
+```
+Ran 2 test suites: 39 tests passed, 0 failed, 0 skipped
+
+✅ SimpleVotingNFT.t.sol: 11 passed
+✅ SimpleVotingSystem.t.sol: 28 passed
+```
+
+## 🛠️ Outils Foundry
 
 ### Build
 
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
+```bash
+forge build
 ```
 
 ### Format
 
-```shell
-$ forge fmt
+```bash
+forge fmt
 ```
 
 ### Gas Snapshots
 
-```shell
-$ forge snapshot
+```bash
+forge snapshot
 ```
 
-### Anvil
+### Anvil (Local Network)
 
-```shell
-$ anvil
+```bash
+anvil
 ```
 
-### Deploy
+### Aide
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```bash
+forge --help
+anvil --help
+cast --help
 ```
 
-### Cast
+## 📚 Documentation
 
-```shell
-$ cast <subcommand>
-```
+- [Foundry Book](https://book.getfoundry.sh/)
+- [Solidity Documentation](https://docs.soliditylang.org/)
+- [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/)
 
-### Help
+## 🔐 Sécurité
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+- ⚠️ Ne commitez JAMAIS votre fichier `.env` avec de vraies clés privées
+- ✅ Le fichier `.gitignore` est configuré pour ignorer `.env`
+- ✅ Utilisez uniquement des clés de test sur les testnets
+- ✅ Tous les contrats utilisent les libraries sécurisées d'OpenZeppelin
+
+## 📄 License
+
+MIT
+
+## 👤 Auteur
+
+EnzoFB
+
+## 🤝 Contributions
+
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
