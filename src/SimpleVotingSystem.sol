@@ -78,6 +78,7 @@ contract SimpleVotingSystem is AccessControl {
     }
 
     function fundCandidate(uint candidateId) external payable onlyRole(FOUNDER_ROLE) {
+        require(workflowStatus == WorkflowStatus.FOUND_CANDIDATES, "Wrong phase");
         candidateFunds[candidateId] += msg.value;
     }
 
