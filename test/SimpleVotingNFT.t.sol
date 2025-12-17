@@ -6,7 +6,7 @@ import {SimpleVotingNFT} from "../src/SimpleVotingNFT.sol";
 
 contract SimpleVotingNFTTest is Test {
     SimpleVotingNFT public votingNFT;
-    
+
     address public owner = address(1);
     address public minter = address(2);
     address public user = address(3);

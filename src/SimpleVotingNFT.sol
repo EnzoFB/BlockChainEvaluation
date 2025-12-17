@@ -16,17 +16,12 @@ contract SimpleVotingNFT is ERC721, AccessControl {
         _tokenIdCounter++;
         _safeMint(to, _tokenIdCounter);
     }
-    
+
     function grantMinterRole(address minter) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(MINTER_ROLE, minter);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, AccessControl)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

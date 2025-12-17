@@ -8,7 +8,7 @@ import {SimpleVotingNFT} from "../src/SimpleVotingNFT.sol";
 contract SimpleVotingSystemTest is Test {
     SimpleVotingSystem public votingSystem;
     SimpleVotingNFT public votingNFT;
-    
+
     address public admin = address(1);
     address public founder = address(2);
     address public voter1 = address(3);
@@ -22,7 +22,7 @@ contract SimpleVotingSystemTest is Test {
         // Deploy NFT contract
         vm.prank(admin);
         votingNFT = new SimpleVotingNFT();
-        
+
         // Deploy voting system
         vm.prank(admin);
         votingSystem = new SimpleVotingSystem(address(votingNFT));
@@ -37,7 +37,7 @@ contract SimpleVotingSystemTest is Test {
     /// @notice Vérifie que le système de vote est déployé correctement avec le rôle admin et le workflow initialisé
     function test_Deployment() public view {
         assertTrue(votingSystem.hasRole(ADMIN_ROLE, admin));
-        assertEq(uint(votingSystem.workflowStatus()), uint(SimpleVotingSystem.WorkflowStatus.REGISTER_CANDIDATES));
+        assertEq(uint256(votingSystem.workflowStatus()), uint256(SimpleVotingSystem.WorkflowStatus.REGISTER_CANDIDATES));
         assertEq(address(votingSystem.votingNFT()), address(votingNFT));
     }
 
@@ -63,16 +63,16 @@ contract SimpleVotingSystemTest is Test {
     function test_SetWorkflowStatus() public {
         vm.prank(admin);
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES);
-        assertEq(uint(votingSystem.workflowStatus()), uint(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES));
+        assertEq(uint256(votingSystem.workflowStatus()), uint256(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES));
     }
 
     /// @notice Vérifie que passer au statut VOTE enregistre le timestamp pour le délai de 1 heure
     function test_SetWorkflowStatusToVote_SetsTimestamp() public {
         vm.warp(1000); // Set timestamp
-        
+
         vm.prank(admin);
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.VOTE);
-        
+
         assertEq(votingSystem.voteStartSetAt(), 1000);
     }
 
@@ -89,9 +89,9 @@ contract SimpleVotingSystemTest is Test {
     function test_AddCandidate() public {
         vm.prank(admin);
         votingSystem.addCandidate("Alice");
-        
+
         assertEq(votingSystem.getCandidatesCount(), 1);
-        
+
         SimpleVotingSystem.Candidate memory candidate = votingSystem.getCandidate(1);
         assertEq(candidate.id, 1);
         assertEq(candidate.name, "Alice");
@@ -105,7 +105,7 @@ contract SimpleVotingSystemTest is Test {
         votingSystem.addCandidate("Bob");
         votingSystem.addCandidate("Charlie");
         vm.stopPrank();
-        
+
         assertEq(votingSystem.getCandidatesCount(), 3);
     }
 
@@ -128,7 +128,7 @@ contract SimpleVotingSystemTest is Test {
         // Change phase to VOTE
         vm.startPrank(admin);
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.VOTE);
-        
+
         vm.expectRevert("Wrong phase");
         votingSystem.addCandidate("Alice");
         vm.stopPrank();
@@ -338,8 +338,8 @@ contract SimpleVotingSystemTest is Test {
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.COMPLETED);
 
         // Get winner
-        (uint winnerId, string memory winnerName, uint winnerVoteCount) = votingSystem.getWinner();
-        
+        (uint256 winnerId, string memory winnerName, uint256 winnerVoteCount) = votingSystem.getWinner();
+
         assertEq(winnerId, 2);
         assertEq(winnerName, "Bob");
         assertEq(winnerVoteCount, 2);
@@ -406,54 +406,54 @@ contract SimpleVotingSystemTest is Test {
         votingSystem.addCandidate("Alice");
         votingSystem.addCandidate("Bob");
         votingSystem.addCandidate("Charlie");
-        
+
         // 2. Move to FOUND_CANDIDATES
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES);
-        
+
         // 3. Grant founder and fund candidates
         votingSystem.grantFounder(founder);
         vm.stopPrank();
-        
+
         vm.deal(founder, 30 ether);
         vm.startPrank(founder);
         votingSystem.fundCandidate{value: 10 ether}(1);
         votingSystem.fundCandidate{value: 10 ether}(2);
         votingSystem.fundCandidate{value: 10 ether}(3);
         vm.stopPrank();
-        
+
         // 4. Move to VOTE
         vm.prank(admin);
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.VOTE);
-        
+
         vm.warp(block.timestamp + 1 hours);
-        
+
         // 5. Vote
         vm.prank(voter1);
         votingSystem.vote(2); // Bob
-        
+
         vm.prank(voter2);
         votingSystem.vote(2); // Bob
-        
+
         address voter3 = address(6);
         vm.prank(voter3);
         votingSystem.vote(1); // Alice
-        
+
         // 6. Complete voting
         vm.prank(admin);
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.COMPLETED);
-        
+
         // 7. Get winner
-        (uint winnerId, string memory winnerName, uint winnerVoteCount) = votingSystem.getWinner();
-        
+        (uint256 winnerId, string memory winnerName, uint256 winnerVoteCount) = votingSystem.getWinner();
+
         assertEq(winnerId, 2);
         assertEq(winnerName, "Bob");
         assertEq(winnerVoteCount, 2);
-        
+
         // Verify NFTs were minted
         assertEq(votingNFT.balanceOf(voter1), 1);
         assertEq(votingNFT.balanceOf(voter2), 1);
         assertEq(votingNFT.balanceOf(voter3), 1);
-        
+
         // Verify funds
         assertEq(votingSystem.candidateFunds(1), 10 ether);
         assertEq(votingSystem.candidateFunds(2), 10 ether);

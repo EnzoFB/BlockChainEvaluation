@@ -9,7 +9,7 @@ contract DeployVotingSystem is Script {
     function run() external returns (SimpleVotingNFT, SimpleVotingSystem) {
         // Récupère la clé privée depuis l'environnement
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        
+
         vm.startBroadcast(deployerPrivateKey);
 
         // 1. Déployer le contrat NFT
