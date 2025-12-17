@@ -20,6 +20,8 @@ contract SimpleVotingSystem is AccessControl {
     enum WorkflowStatus { REGISTER_CANDIDATES, FOUND_CANDIDATES, VOTE, COMPLETED }
     WorkflowStatus public workflowStatus;
 
+    mapping(uint => uint256) public candidateFunds;
+
     constructor() {
         _grantRole(ADMIN_ROLE, msg.sender);
     }
@@ -60,4 +62,11 @@ contract SimpleVotingSystem is AccessControl {
         workflowStatus = newStatus;
     }
 
+    function grantFounder(address a) external onlyRole(ADMIN_ROLE) {
+        _grantRole(FOUNDER_ROLE, a);
+    }
+
+    function fundCandidate(uint candidateId) external payable onlyRole(FOUNDER_ROLE) {
+        candidateFunds[candidateId] += msg.value;
+    }
 }
