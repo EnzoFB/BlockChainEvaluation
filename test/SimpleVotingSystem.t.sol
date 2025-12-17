@@ -308,6 +308,33 @@ contract SimpleVotingSystemTest is Test {
         votingSystem.fundCandidate{value: 5 ether}(1);
     }
 
+    /// @notice Vérifie qu'on ne peut pas financer un candidat avec un ID invalide
+    function test_RevertWhen_FundInvalidCandidate() public {
+        vm.startPrank(admin);
+        votingSystem.grantFounder(founder);
+        votingSystem.addCandidate("Alice");
+        votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES);
+        vm.stopPrank();
+
+        vm.deal(founder, 10 ether);
+        vm.prank(founder);
+        vm.expectRevert("Invalid candidate ID");
+        votingSystem.fundCandidate{value: 5 ether}(999);
+    }
+
+    /// @notice Vérifie qu'on ne peut pas financer avec 0 ETH
+    function test_RevertWhen_FundWithZeroAmount() public {
+        vm.startPrank(admin);
+        votingSystem.grantFounder(founder);
+        votingSystem.addCandidate("Alice");
+        votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES);
+        vm.stopPrank();
+
+        vm.prank(founder);
+        vm.expectRevert("Amount must be greater than 0");
+        votingSystem.fundCandidate{value: 0}(1);
+    }
+
     // ========== WINNER TESTS ==========
 
     /// @notice Vérifie que la fonction getWinner retourne le candidat avec le plus de votes en phase COMPLETED
@@ -395,6 +422,78 @@ contract SimpleVotingSystemTest is Test {
     function test_RevertWhen_GetInvalidCandidate() public {
         vm.expectRevert("Invalid candidate ID");
         votingSystem.getCandidate(1);
+    }
+
+    /// @notice Vérifie que getAllCandidates retourne tous les candidats enregistrés
+    function test_GetAllCandidates() public {
+        vm.startPrank(admin);
+        votingSystem.addCandidate("Alice");
+        votingSystem.addCandidate("Bob");
+        votingSystem.addCandidate("Charlie");
+        vm.stopPrank();
+
+        SimpleVotingSystem.Candidate[] memory allCandidates = votingSystem.getAllCandidates();
+
+        assertEq(allCandidates.length, 3);
+        assertEq(allCandidates[0].name, "Alice");
+        assertEq(allCandidates[1].name, "Bob");
+        assertEq(allCandidates[2].name, "Charlie");
+    }
+
+    /// @notice Vérifie que getAllCandidates retourne un tableau vide si aucun candidat
+    function test_GetAllCandidates_Empty() public view {
+        SimpleVotingSystem.Candidate[] memory allCandidates = votingSystem.getAllCandidates();
+        assertEq(allCandidates.length, 0);
+    }
+
+    // ========== INTEGRATION TESTS ==========
+
+    /// @notice Vérifie que l'événement CandidateAdded est émis lors de l'ajout d'un candidat
+    function test_Event_CandidateAdded() public {
+        vm.prank(admin);
+        vm.expectEmit(true, false, false, true);
+        emit SimpleVotingSystem.CandidateAdded(1, "Alice");
+        votingSystem.addCandidate("Alice");
+    }
+
+    /// @notice Vérifie que l'événement Voted est émis lors d'un vote
+    function test_Event_Voted() public {
+        vm.startPrank(admin);
+        votingSystem.addCandidate("Alice");
+        votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.VOTE);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 hours);
+
+        vm.prank(voter1);
+        vm.expectEmit(true, true, false, false);
+        emit SimpleVotingSystem.Voted(voter1, 1);
+        votingSystem.vote(1);
+    }
+
+    /// @notice Vérifie que l'événement WorkflowStatusChanged est émis
+    function test_Event_WorkflowStatusChanged() public {
+        vm.prank(admin);
+        vm.expectEmit(false, false, false, true);
+        emit SimpleVotingSystem.WorkflowStatusChanged(
+            SimpleVotingSystem.WorkflowStatus.REGISTER_CANDIDATES, SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES
+        );
+        votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES);
+    }
+
+    /// @notice Vérifie que l'événement CandidateFunded est émis
+    function test_Event_CandidateFunded() public {
+        vm.startPrank(admin);
+        votingSystem.grantFounder(founder);
+        votingSystem.addCandidate("Alice");
+        votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES);
+        vm.stopPrank();
+
+        vm.deal(founder, 10 ether);
+        vm.prank(founder);
+        vm.expectEmit(true, false, true, true);
+        emit SimpleVotingSystem.CandidateFunded(1, 5 ether, founder);
+        votingSystem.fundCandidate{value: 5 ether}(1);
     }
 
     // ========== INTEGRATION TESTS ==========

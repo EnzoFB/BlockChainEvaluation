@@ -8,6 +8,13 @@ contract SimpleVotingSystem is AccessControl {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant FOUNDER_ROLE = keccak256("FOUNDER_ROLE");
 
+    // Events
+    event CandidateAdded(uint256 indexed candidateId, string name);
+    event Voted(address indexed voter, uint256 indexed candidateId);
+    event WorkflowStatusChanged(WorkflowStatus oldStatus, WorkflowStatus newStatus);
+    event CandidateFunded(uint256 indexed candidateId, uint256 amount, address indexed funder);
+    event WinnerDeclared(uint256 indexed winnerId, string name, uint256 voteCount);
+
     struct Candidate {
         uint256 id;
         string name;
@@ -43,6 +50,7 @@ contract SimpleVotingSystem is AccessControl {
         uint256 candidateId = candidateIds.length + 1;
         candidates[candidateId] = Candidate(candidateId, _name, 0);
         candidateIds.push(candidateId);
+        emit CandidateAdded(candidateId, _name);
     }
 
     function vote(uint256 _candidateId) public {
@@ -54,6 +62,7 @@ contract SimpleVotingSystem is AccessControl {
         voters[msg.sender] = true;
         candidates[_candidateId].voteCount += 1;
         votingNFT.mint(msg.sender);
+        emit Voted(msg.sender, _candidateId);
     }
 
     function getTotalVotes(uint256 _candidateId) public view returns (uint256) {
@@ -71,11 +80,21 @@ contract SimpleVotingSystem is AccessControl {
         return candidates[_candidateId];
     }
 
+    function getAllCandidates() external view returns (Candidate[] memory) {
+        Candidate[] memory allCandidates = new Candidate[](candidateIds.length);
+        for (uint256 i = 0; i < candidateIds.length; i++) {
+            allCandidates[i] = candidates[candidateIds[i]];
+        }
+        return allCandidates;
+    }
+
     function setWorkflowStatus(WorkflowStatus newStatus) external onlyRole(ADMIN_ROLE) {
+        WorkflowStatus oldStatus = workflowStatus;
         workflowStatus = newStatus;
         if (newStatus == WorkflowStatus.VOTE) {
             voteStartSetAt = block.timestamp;
         }
+        emit WorkflowStatusChanged(oldStatus, newStatus);
     }
 
     function grantFounder(address a) external onlyRole(ADMIN_ROLE) {
@@ -84,7 +103,10 @@ contract SimpleVotingSystem is AccessControl {
 
     function fundCandidate(uint256 candidateId) external payable onlyRole(FOUNDER_ROLE) {
         require(workflowStatus == WorkflowStatus.FOUND_CANDIDATES, "Wrong phase");
+        require(candidateId > 0 && candidateId <= candidateIds.length, "Invalid candidate ID");
+        require(msg.value > 0, "Amount must be greater than 0");
         candidateFunds[candidateId] += msg.value;
+        emit CandidateFunded(candidateId, msg.value, msg.sender);
     }
 
     function getWinner() public view returns (uint256 winnerId, string memory winnerName, uint256 winnerVoteCount) {
