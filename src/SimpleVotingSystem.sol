@@ -13,21 +13,15 @@ contract SimpleVotingSystem is AccessControl {
         uint voteCount;
     }
 
-    address public owner;
     mapping(uint => Candidate) public candidates;
     mapping(address => bool) public voters;
     uint[] private candidateIds;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only the contract owner can perform this action");
-        _;
-    }
-
     constructor() {
-        owner = msg.sender;
+        _grantRole(ADMIN_ROLE, msg.sender);
     }
 
-    function addCandidate(string memory _name) public onlyOwner {
+    function addCandidate(string memory _name) public onlyRole(ADMIN_ROLE) {
         require(bytes(_name).length > 0, "Candidate name cannot be empty");
         uint candidateId = candidateIds.length + 1;
         candidates[candidateId] = Candidate(candidateId, _name, 0);
