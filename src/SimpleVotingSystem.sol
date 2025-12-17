@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "./SimpleVotingNFT.sol";
 
 contract SimpleVotingSystem is AccessControl {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -23,9 +24,12 @@ contract SimpleVotingSystem is AccessControl {
     mapping(uint => uint256) public candidateFunds;
 
     uint256 public voteStartSetAt;
+    
+    SimpleVotingNFT public votingNFT;
 
-    constructor() {
+    constructor(address _votingNFT) {
         _grantRole(ADMIN_ROLE, msg.sender);
+        votingNFT = SimpleVotingNFT(_votingNFT);
     }
 
     function addCandidate(string memory _name) public onlyRole(ADMIN_ROLE) {
@@ -38,12 +42,13 @@ contract SimpleVotingSystem is AccessControl {
 
     function vote(uint _candidateId) public {
         require(workflowStatus == WorkflowStatus.VOTE, "Wrong phase");
-        require(!voters[msg.sender], "You have already voted");
+        require(votingNFT.balanceOf(msg.sender) == 0, "You have already voted (NFT detected)");
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
         require(block.timestamp >= voteStartSetAt + 1 hours, "Voting not open yet");
 
         voters[msg.sender] = true;
         candidates[_candidateId].voteCount += 1;
+        votingNFT.mint(msg.sender);
     }
 
     function getTotalVotes(uint _candidateId) public view returns (uint) {
@@ -74,5 +79,25 @@ contract SimpleVotingSystem is AccessControl {
 
     function fundCandidate(uint candidateId) external payable onlyRole(FOUNDER_ROLE) {
         candidateFunds[candidateId] += msg.value;
+    }
+
+    function getWinner() public view returns (uint winnerId, string memory winnerName, uint winnerVoteCount) {
+        require(workflowStatus == WorkflowStatus.COMPLETED, "Voting not completed yet");
+        require(candidateIds.length > 0, "No candidates registered");
+        
+        uint maxVotes = 0;
+        uint winningCandidateId = 0;
+        
+        for (uint i = 0; i < candidateIds.length; i++) {
+            uint candidateId = candidateIds[i];
+            if (candidates[candidateId].voteCount > maxVotes) {
+                maxVotes = candidates[candidateId].voteCount;
+                winningCandidateId = candidateId;
+            }
+        }
+        
+        require(winningCandidateId > 0, "No winner found");
+        Candidate memory winner = candidates[winningCandidateId];
+        return (winner.id, winner.name, winner.voteCount);
     }
 }
