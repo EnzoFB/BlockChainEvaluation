@@ -196,6 +196,29 @@ forge verify-contract 0x456... SimpleVotingSystem --chain sepolia --constructor-
 2. Recherchez vos adresses de contrats
 3. Vérifiez les transactions de déploiement
 
+## 🌐 Déploiement sur Sepolia Testnet
+
+### Contrats Déployés
+
+| Contrat | Adresse | Transaction de Déploiement |
+|---------|---------|-------------|
+| SimpleVotingNFT | `0x9287c061c41013F3855Bd2dc8fe48dF2d999B74a` | [Voir sur Etherscan](https://sepolia.etherscan.io/tx/0x69e49f91cfb11ca2aed032f7a5bfda55d02b06647ad2671a9326098a2cdb5119) |
+| SimpleVotingSystem | `0x2dF9362667B0500F48B9EDC91Eb00c7153A370cB` | [Voir sur Etherscan](https://sepolia.etherscan.io/tx/0x2c2693434323f5b303a920c78c93855234b7d7e992589c2a40ea05dc375c132b) |
+
+### Interactions de Test sur le Réseau
+
+Exemples de transactions effectuées sur le testnet Sepolia :
+
+| Action | Transaction |
+|--------|-------------|
+| Ajout de candidat "Alice" | [0xf8bbe7baef4e5beb73e51b030eef1fdd0dc2d836dfb7afdf624f95be3f714c51](https://sepolia.etherscan.io/tx/0xf8bbe7baef4e5beb73e51b030eef1fdd0dc2d836dfb7afdf624f95be3f714c51) |
+| Ajout de candidat "Bob" | [0xd1ee2fcb593d74d3042edb12a04110ed07dfccb18edc724996daebf5bee15619](https://sepolia.etherscan.io/tx/0xd1ee2fcb593d74d3042edb12a04110ed07dfccb18edc724996daebf5bee15619) |
+| Ajout de candidat "Charlie" | [0x1aaddff7868e890355e64080fb66a7e07b877209138c7b89c6ac293ee20f90f7](https://sepolia.etherscan.io/tx/0x1aaddff7868e890355e64080fb66a7e07b877209138c7b89c6ac293ee20f90f7) |
+| Attribution du rôle FOUNDER | [0x0c53f6ff7b8581341170d4c19c12b5d6e7b0ca5f0e80209082e2f90a74243b3e](https://sepolia.etherscan.io/tx/0x0c53f6ff7b8581341170d4c19c12b5d6e7b0ca5f0e80209082e2f90a74243b3e) |
+| Attribution du rôle MINTER (lors du déploiement) | [0xd8c80f0d3359c45f466ff49894009a64b59c968f26478814f3088d5d357139db](https://sepolia.etherscan.io/tx/0xd8c80f0d3359c45f466ff49894009a64b59c968f26478814f3088d5d357139db) |
+
+> **Note**: Tous les contrats sont déployés et testés sur Sepolia. Vous pouvez continuer le workflow en changeant les phases et en effectuant des votes.
+
 ## 💡 Utilisation
 
 ### Commandes Cast Utiles
