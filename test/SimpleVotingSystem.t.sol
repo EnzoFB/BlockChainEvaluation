@@ -119,7 +119,7 @@ contract SimpleVotingSystemTest is Test {
     /// @notice Vérifie qu'on ne peut pas enregistrer un candidat avec un nom vide
     function test_RevertWhen_AddCandidateWithEmptyName() public {
         vm.prank(admin);
-        vm.expectRevert("Candidate name cannot be empty");
+        vm.expectRevert(SimpleVotingSystem.EmptyCandidateName.selector);
         votingSystem.addCandidate("");
     }
 
@@ -129,7 +129,13 @@ contract SimpleVotingSystemTest is Test {
         vm.startPrank(admin);
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.VOTE);
 
-        vm.expectRevert("Wrong phase");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SimpleVotingSystem.WrongPhase.selector,
+                SimpleVotingSystem.WorkflowStatus.VOTE,
+                SimpleVotingSystem.WorkflowStatus.REGISTER_CANDIDATES
+            )
+        );
         votingSystem.addCandidate("Alice");
         vm.stopPrank();
     }
@@ -184,7 +190,13 @@ contract SimpleVotingSystemTest is Test {
 
         // Still in REGISTER_CANDIDATES phase
         vm.prank(voter1);
-        vm.expectRevert("Wrong phase");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SimpleVotingSystem.WrongPhase.selector,
+                SimpleVotingSystem.WorkflowStatus.REGISTER_CANDIDATES,
+                SimpleVotingSystem.WorkflowStatus.VOTE
+            )
+        );
         votingSystem.vote(1);
     }
 
@@ -197,7 +209,11 @@ contract SimpleVotingSystemTest is Test {
 
         // Try to vote immediately
         vm.prank(voter1);
-        vm.expectRevert("Voting not open yet");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SimpleVotingSystem.VotingNotOpenYet.selector, block.timestamp, block.timestamp + 1 hours
+            )
+        );
         votingSystem.vote(1);
     }
 
@@ -217,7 +233,7 @@ contract SimpleVotingSystemTest is Test {
 
         // Try to vote again
         vm.prank(voter1);
-        vm.expectRevert("You have already voted (NFT detected)");
+        vm.expectRevert(abi.encodeWithSelector(SimpleVotingSystem.AlreadyVoted.selector, voter1));
         votingSystem.vote(1);
     }
 
@@ -231,7 +247,7 @@ contract SimpleVotingSystemTest is Test {
         vm.warp(block.timestamp + 1 hours);
 
         vm.prank(voter1);
-        vm.expectRevert("Invalid candidate ID");
+        vm.expectRevert(abi.encodeWithSelector(SimpleVotingSystem.InvalidCandidateId.selector, 999));
         votingSystem.vote(999);
     }
 
@@ -304,7 +320,13 @@ contract SimpleVotingSystemTest is Test {
         // Still in REGISTER_CANDIDATES phase
         vm.deal(founder, 10 ether);
         vm.prank(founder);
-        vm.expectRevert("Wrong phase");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SimpleVotingSystem.WrongPhase.selector,
+                SimpleVotingSystem.WorkflowStatus.REGISTER_CANDIDATES,
+                SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES
+            )
+        );
         votingSystem.fundCandidate{value: 5 ether}(1);
     }
 
@@ -318,7 +340,7 @@ contract SimpleVotingSystemTest is Test {
 
         vm.deal(founder, 10 ether);
         vm.prank(founder);
-        vm.expectRevert("Invalid candidate ID");
+        vm.expectRevert(abi.encodeWithSelector(SimpleVotingSystem.InvalidCandidateId.selector, 999));
         votingSystem.fundCandidate{value: 5 ether}(999);
     }
 
@@ -331,7 +353,7 @@ contract SimpleVotingSystemTest is Test {
         vm.stopPrank();
 
         vm.prank(founder);
-        vm.expectRevert("Amount must be greater than 0");
+        vm.expectRevert(SimpleVotingSystem.ZeroAmount.selector);
         votingSystem.fundCandidate{value: 0}(1);
     }
 
@@ -377,7 +399,13 @@ contract SimpleVotingSystemTest is Test {
         vm.prank(admin);
         votingSystem.addCandidate("Alice");
 
-        vm.expectRevert("Voting not completed yet");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SimpleVotingSystem.WrongPhase.selector,
+                SimpleVotingSystem.WorkflowStatus.REGISTER_CANDIDATES,
+                SimpleVotingSystem.WorkflowStatus.COMPLETED
+            )
+        );
         votingSystem.getWinner();
     }
 
@@ -386,7 +414,7 @@ contract SimpleVotingSystemTest is Test {
         vm.prank(admin);
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.COMPLETED);
 
-        vm.expectRevert("No candidates registered");
+        vm.expectRevert(SimpleVotingSystem.NoCandidatesRegistered.selector);
         votingSystem.getWinner();
     }
 
@@ -420,7 +448,7 @@ contract SimpleVotingSystemTest is Test {
 
     /// @notice Vérifie qu'on ne peut pas récupérer un candidat avec un ID invalide
     function test_RevertWhen_GetInvalidCandidate() public {
-        vm.expectRevert("Invalid candidate ID");
+        vm.expectRevert(abi.encodeWithSelector(SimpleVotingSystem.InvalidCandidateId.selector, 1));
         votingSystem.getCandidate(1);
     }
 

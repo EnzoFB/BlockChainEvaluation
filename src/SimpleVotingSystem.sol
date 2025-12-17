@@ -8,6 +8,16 @@ contract SimpleVotingSystem is AccessControl {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant FOUNDER_ROLE = keccak256("FOUNDER_ROLE");
 
+    // Custom Errors
+    error WrongPhase(WorkflowStatus current, WorkflowStatus required);
+    error AlreadyVoted(address voter);
+    error InvalidCandidateId(uint256 id);
+    error VotingNotOpenYet(uint256 currentTime, uint256 openTime);
+    error EmptyCandidateName();
+    error ZeroAmount();
+    error NoCandidatesRegistered();
+    error NoWinnerFound();
+
     // Events
     event CandidateAdded(uint256 indexed candidateId, string name);
     event Voted(address indexed voter, uint256 indexed candidateId);
@@ -45,8 +55,12 @@ contract SimpleVotingSystem is AccessControl {
     }
 
     function addCandidate(string memory _name) public onlyRole(ADMIN_ROLE) {
-        require(workflowStatus == WorkflowStatus.REGISTER_CANDIDATES, "Wrong phase");
-        require(bytes(_name).length > 0, "Candidate name cannot be empty");
+        if (workflowStatus != WorkflowStatus.REGISTER_CANDIDATES) {
+            revert WrongPhase(workflowStatus, WorkflowStatus.REGISTER_CANDIDATES);
+        }
+        if (bytes(_name).length == 0) {
+            revert EmptyCandidateName();
+        }
         uint256 candidateId = candidateIds.length + 1;
         candidates[candidateId] = Candidate(candidateId, _name, 0);
         candidateIds.push(candidateId);
@@ -54,10 +68,18 @@ contract SimpleVotingSystem is AccessControl {
     }
 
     function vote(uint256 _candidateId) public {
-        require(workflowStatus == WorkflowStatus.VOTE, "Wrong phase");
-        require(votingNFT.balanceOf(msg.sender) == 0, "You have already voted (NFT detected)");
-        require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
-        require(block.timestamp >= voteStartSetAt + 1 hours, "Voting not open yet");
+        if (workflowStatus != WorkflowStatus.VOTE) {
+            revert WrongPhase(workflowStatus, WorkflowStatus.VOTE);
+        }
+        if (votingNFT.balanceOf(msg.sender) != 0) {
+            revert AlreadyVoted(msg.sender);
+        }
+        if (_candidateId == 0 || _candidateId > candidateIds.length) {
+            revert InvalidCandidateId(_candidateId);
+        }
+        if (block.timestamp < voteStartSetAt + 1 hours) {
+            revert VotingNotOpenYet(block.timestamp, voteStartSetAt + 1 hours);
+        }
 
         voters[msg.sender] = true;
         candidates[_candidateId].voteCount += 1;
@@ -66,7 +88,9 @@ contract SimpleVotingSystem is AccessControl {
     }
 
     function getTotalVotes(uint256 _candidateId) public view returns (uint256) {
-        require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
+        if (_candidateId == 0 || _candidateId > candidateIds.length) {
+            revert InvalidCandidateId(_candidateId);
+        }
         return candidates[_candidateId].voteCount;
     }
 
@@ -76,7 +100,9 @@ contract SimpleVotingSystem is AccessControl {
 
     // Optional: Function to get candidate details by ID
     function getCandidate(uint256 _candidateId) public view returns (Candidate memory) {
-        require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
+        if (_candidateId == 0 || _candidateId > candidateIds.length) {
+            revert InvalidCandidateId(_candidateId);
+        }
         return candidates[_candidateId];
     }
 
@@ -102,16 +128,26 @@ contract SimpleVotingSystem is AccessControl {
     }
 
     function fundCandidate(uint256 candidateId) external payable onlyRole(FOUNDER_ROLE) {
-        require(workflowStatus == WorkflowStatus.FOUND_CANDIDATES, "Wrong phase");
-        require(candidateId > 0 && candidateId <= candidateIds.length, "Invalid candidate ID");
-        require(msg.value > 0, "Amount must be greater than 0");
+        if (workflowStatus != WorkflowStatus.FOUND_CANDIDATES) {
+            revert WrongPhase(workflowStatus, WorkflowStatus.FOUND_CANDIDATES);
+        }
+        if (candidateId == 0 || candidateId > candidateIds.length) {
+            revert InvalidCandidateId(candidateId);
+        }
+        if (msg.value == 0) {
+            revert ZeroAmount();
+        }
         candidateFunds[candidateId] += msg.value;
         emit CandidateFunded(candidateId, msg.value, msg.sender);
     }
 
     function getWinner() public view returns (uint256 winnerId, string memory winnerName, uint256 winnerVoteCount) {
-        require(workflowStatus == WorkflowStatus.COMPLETED, "Voting not completed yet");
-        require(candidateIds.length > 0, "No candidates registered");
+        if (workflowStatus != WorkflowStatus.COMPLETED) {
+            revert WrongPhase(workflowStatus, WorkflowStatus.COMPLETED);
+        }
+        if (candidateIds.length == 0) {
+            revert NoCandidatesRegistered();
+        }
 
         uint256 maxVotes = 0;
         uint256 winningCandidateId = 0;
@@ -124,7 +160,9 @@ contract SimpleVotingSystem is AccessControl {
             }
         }
 
-        require(winningCandidateId > 0, "No winner found");
+        if (winningCandidateId == 0) {
+            revert NoWinnerFound();
+        }
         Candidate memory winner = candidates[winningCandidateId];
         return (winner.id, winner.name, winner.voteCount);
     }
